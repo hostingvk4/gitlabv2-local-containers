@@ -1,0 +1,44 @@
+version: '3.6'
+services:
+  gitlab:
+    image: 'gitlab/gitlab-ee:latest'
+    restart: always
+    hostname: 'gitlab.example.com'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab.example.com'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2224
+    ports:
+      - '2224:22'
+    volumes:
+      - '/srv/gitlab/config:/etc/gitlab'	
+      - '/srv/gitlab/logs:/var/log/gitlab'
+      - '/srv/gitlab/data:/var/opt/gitlab'
+    networks:
+      - gitlab-web
+    shm_size: '256m'
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    deploy:
+      mode: replicated
+      replicas: 1
+    volumes:
+      - ./config/:/etc/gitlab-runner/
+      # - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - gitlab-web
+  gitlab-test:
+    image: docker:dind
+    privileged: true
+    ports: 
+      - 80:80
+    expose:
+    - 2375
+    environment:
+    - DOCKER_TLS_CERTDIR=
+    networks:
+      - gitlab-web
+networks:
+    gitlab-web:
+        external: true
+
